@@ -7,6 +7,7 @@ import AddTransaction from './pages/AddTransaction';
 import Statistics from './pages/Statistics';
 import Budget from './pages/Budget';
 import Reminders from './pages/Reminders';
+import UpdateBanner from './components/UpdateBanner';
 import { useDarkMode } from './store/useDarkMode';
 import { useReminders, dueStatus } from './store/useReminders';
 import { showNotification } from './utils/notifications';
@@ -46,6 +47,7 @@ export default function App() {
 
   return (
     <DarkContext.Provider value={{ dark, toggle }}>
+      <UpdateBanner />
       <ReminderChecker />
       <BrowserRouter>
         <Routes>
