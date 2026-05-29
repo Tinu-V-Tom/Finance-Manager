@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { TrendingUp, TrendingDown, PiggyBank, Plus, ChevronRight, AlertTriangle, Sun, Moon } from 'lucide-react';
-import { useFinance, sumByType, filterMonth, monthKey, fmt, fmtDate } from '../store/useFinance';
+import { useFinance, sumByType, filterMonth, monthKey, fmt, fmtDate, sortByDate } from '../store/useFinance';
 import { useDark } from '../App';
 import type { TxType } from '../types';
 
@@ -116,7 +116,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {transactions.slice(0, 6).map(t => (
+          {sortByDate(transactions).slice(0, 6).map(t => (
             <div key={t.id} className={`flex items-center gap-3 rounded-xl border p-3 ${TYPE_BG[t.type]}`}>
               <div className={`w-2 h-10 rounded-full ${TYPE_BAR[t.type]}`} />
               <div className="flex-1 min-w-0">

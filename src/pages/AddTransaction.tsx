@@ -1,27 +1,31 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Check, Plus, X, Trash2 } from 'lucide-react';
 import { useFinance } from '../store/useFinance';
 import { useCategories } from '../store/useCategories';
-import type { TxType } from '../types';
+import type { Transaction, TxType } from '../types';
 
-const TYPE_STYLE: Record<TxType, { active: string; saveBtn: string; ring: string }> = {
-  income:     { active: 'bg-emerald-600 text-white border-emerald-600', saveBtn: 'bg-emerald-600 shadow-emerald-200 dark:shadow-emerald-900', ring: 'focus:ring-emerald-300' },
-  expense:    { active: 'bg-red-500     text-white border-red-500',     saveBtn: 'bg-red-500     shadow-red-200     dark:shadow-red-900',     ring: 'focus:ring-red-200'     },
-  investment: { active: 'bg-blue-700   text-white border-blue-700',     saveBtn: 'bg-blue-700   shadow-blue-200    dark:shadow-blue-900',    ring: 'focus:ring-blue-200'    },
+const TYPE_STYLE: Record<TxType, { active: string; saveBtn: string }> = {
+  income:     { active: 'bg-emerald-600 text-white border-emerald-600', saveBtn: 'bg-emerald-600 shadow-emerald-200 dark:shadow-emerald-900' },
+  expense:    { active: 'bg-red-500     text-white border-red-500',     saveBtn: 'bg-red-500     shadow-red-200     dark:shadow-red-900'     },
+  investment: { active: 'bg-blue-700   text-white border-blue-700',     saveBtn: 'bg-blue-700   shadow-blue-200    dark:shadow-blue-900'    },
 };
 
 export default function AddTransaction() {
-  const navigate = useNavigate();
-  const { addTransaction } = useFinance();
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const editTx    = location.state?.tx as Transaction | undefined;
+  const isEditing = !!editTx;
+
+  const { addTransaction, updateTransaction } = useFinance();
   const { getAll, addCategory, deleteCategory, custom } = useCategories();
 
-  const [type, setType]           = useState<TxType>('expense');
-  const [category, setCategory]   = useState<string>('Food');
-  const [amount, setAmount]       = useState('');
-  const [note, setNote]           = useState('');
-  const [date, setDate]           = useState(new Date().toISOString().slice(0, 10));
-  const [addingCat, setAddingCat] = useState(false);
+  const [type, setType]             = useState<TxType>(editTx?.type     ?? 'expense');
+  const [category, setCategory]     = useState<string>(editTx?.category ?? 'Food');
+  const [amount, setAmount]         = useState(editTx ? String(editTx.amount) : '');
+  const [note, setNote]             = useState(editTx?.note             ?? '');
+  const [date, setDate]             = useState(editTx?.date             ?? new Date().toISOString().slice(0, 10));
+  const [addingCat, setAddingCat]   = useState(false);
   const [newCatName, setNewCatName] = useState('');
 
   function handleTypeChange(t: TxType) {
@@ -33,7 +37,11 @@ export default function AddTransaction() {
   function handleSave() {
     const n = parseFloat(amount);
     if (!n || n <= 0) return;
-    addTransaction({ type, category, amount: n, note, date });
+    if (isEditing) {
+      updateTransaction({ ...editTx!, type, category, amount: n, note, date });
+    } else {
+      addTransaction({ type, category, amount: n, note, date });
+    }
     navigate(-1);
   }
 
@@ -46,8 +54,8 @@ export default function AddTransaction() {
   }
 
   const s = TYPE_STYLE[type];
-  const allCategories = getAll(type);
-  const customForType = custom[type] || [];
+  const allCategories  = getAll(type);
+  const customForType  = custom[type] || [];
 
   return (
     <div className="page-enter pb-10 bg-slate-50 dark:bg-slate-900 min-h-dvh">
@@ -56,7 +64,14 @@ export default function AddTransaction() {
         <button onClick={() => navigate(-1)} className="p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 active:scale-95 transition-transform">
           <ArrowLeft size={18} className="text-slate-600 dark:text-slate-300" />
         </button>
-        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">Add Transaction</h1>
+        <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+          {isEditing ? 'Edit Transaction' : 'Add Transaction'}
+        </h1>
+        {isEditing && (
+          <span className="ml-auto text-xs px-2 py-1 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 font-medium">
+            Editing
+          </span>
+        )}
       </div>
 
       <div className="px-4 flex flex-col gap-5">
@@ -75,7 +90,8 @@ export default function AddTransaction() {
           <label className="text-xs text-slate-400 font-medium uppercase tracking-wide block mb-2">Amount</label>
           <div className="flex items-center gap-2">
             <span className="text-2xl font-bold text-slate-400">₹</span>
-            <input type="number" inputMode="decimal" placeholder="0" value={amount} onChange={e => setAmount(e.target.value)}
+            <input type="number" inputMode="decimal" placeholder="0" value={amount}
+              onChange={e => setAmount(e.target.value)}
               className="flex-1 text-3xl font-bold text-slate-800 dark:text-slate-100 outline-none bg-transparent placeholder:text-slate-200 dark:placeholder:text-slate-600" />
           </div>
         </div>
@@ -90,18 +106,12 @@ export default function AddTransaction() {
             </button>
           </div>
 
-          {/* Add new category input */}
           {addingCat && (
             <div className="flex gap-2 mb-3">
-              <input
-                autoFocus
-                type="text"
-                placeholder="Category name..."
-                value={newCatName}
+              <input autoFocus type="text" placeholder="Category name..." value={newCatName}
                 onChange={e => setNewCatName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleAddCat()}
-                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
-              />
+                className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600" />
               <button onClick={handleAddCat}
                 className={`px-4 py-2 rounded-xl text-white text-sm font-semibold ${type === 'income' ? 'bg-emerald-600' : type === 'expense' ? 'bg-red-500' : 'bg-blue-700'}`}>
                 Add
@@ -146,10 +156,11 @@ export default function AddTransaction() {
             className="w-full text-sm text-slate-700 dark:text-slate-200 outline-none bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600" />
         </div>
 
-        {/* Save */}
+        {/* Save / Update */}
         <button onClick={handleSave} disabled={!amount || parseFloat(amount) <= 0}
           className={`w-full py-4 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 shadow-lg ${s.saveBtn}`}>
-          <Check size={18} /> Save Transaction
+          <Check size={18} />
+          {isEditing ? 'Update Transaction' : 'Save Transaction'}
         </button>
       </div>
     </div>

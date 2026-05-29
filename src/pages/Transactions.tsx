@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Search, Plus, Trash2 } from 'lucide-react';
-import { useFinance, fmt, fmtDate } from '../store/useFinance';
+import { Link, useNavigate } from 'react-router-dom';
+import { Search, Plus, Trash2, Pencil } from 'lucide-react';
+import { useFinance, fmt, fmtDate, sortByDate } from '../store/useFinance';
 import type { TxType } from '../types';
 
 const FILTERS = ['All', 'Income', 'Expense', 'Investment'] as const;
@@ -13,15 +13,20 @@ const TYPE_STYLE: Record<TxType, { bar: string; amount: string; bg: string }> = 
 };
 
 export default function Transactions() {
+  const navigate = useNavigate();
   const { transactions, deleteTransaction } = useFinance();
-  const [filter, setFilter]     = useState<typeof FILTERS[number]>('All');
-  const [search, setSearch]     = useState('');
+  const [filter, setFilter]       = useState<typeof FILTERS[number]>('All');
+  const [search, setSearch]       = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return transactions
+    const base = sortByDate(transactions);
+    return base
       .filter(t => filter === 'All' || t.type === filter.toLowerCase())
-      .filter(t => !search || t.category.toLowerCase().includes(search.toLowerCase()) || t.note.toLowerCase().includes(search.toLowerCase()));
+      .filter(t => !search ||
+        t.category.toLowerCase().includes(search.toLowerCase()) ||
+        t.note.toLowerCase().includes(search.toLowerCase())
+      );
   }, [transactions, filter, search]);
 
   return (
@@ -38,27 +43,18 @@ export default function Transactions() {
         {/* Search */}
         <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2 mb-3">
           <Search size={16} className="text-slate-400 shrink-0" />
-          <input
-            type="text"
-            placeholder="Search category or note..."
-            value={search}
+          <input type="text" placeholder="Search category or note..." value={search}
             onChange={e => setSearch(e.target.value)}
-            className="flex-1 text-sm text-slate-700 dark:text-slate-200 outline-none bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600"
-          />
+            className="flex-1 text-sm text-slate-700 dark:text-slate-200 outline-none bg-transparent placeholder:text-slate-300 dark:placeholder:text-slate-600" />
         </div>
 
         {/* Filter tabs */}
         <div className="flex gap-2 overflow-x-auto pb-1">
           {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
+            <button key={f} onClick={() => setFilter(f)}
               className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                filter === f
-                  ? 'bg-blue-700 text-white'
-                  : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-              }`}
-            >
+                filter === f ? 'bg-blue-700 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+              }`}>
               {f}
             </button>
           ))}
@@ -73,23 +69,33 @@ export default function Transactions() {
           filtered.map(t => {
             const s = TYPE_STYLE[t.type];
             return (
-              <div key={t.id} className={`flex items-center gap-0 rounded-2xl overflow-hidden border ${s.bg}`}>
-                <div className={`w-1 self-stretch ${s.bar}`} />
+              <div key={t.id} className={`flex items-center rounded-2xl overflow-hidden border ${s.bg}`}>
+                <div className={`w-1 self-stretch shrink-0 ${s.bar}`} />
                 <div className="flex-1 flex items-center gap-3 px-3 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{t.category}</p>
                     {t.note && <p className="text-xs text-slate-400 truncate">{t.note}</p>}
-                    <p className="text-xs text-slate-400 mt-0.5">{fmtDate(t.date)} · <span className="capitalize">{t.type}</span></p>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {fmtDate(t.date)} · <span className="capitalize">{t.type}</span>
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <p className={`text-sm font-bold ${s.amount}`}>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <p className={`text-sm font-bold mr-1 ${s.amount}`}>
                       {t.type === 'income' ? '+' : '-'}{fmt(t.amount)}
                     </p>
+                    {/* Edit */}
+                    <button
+                      onClick={() => navigate('/add', { state: { tx: t } })}
+                      className="p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    {/* Delete */}
                     <button
                       onClick={() => setConfirmId(t.id)}
                       className="p-1.5 rounded-lg text-slate-300 dark:text-slate-600 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -106,13 +112,12 @@ export default function Transactions() {
             <p className="text-base font-semibold text-slate-800 dark:text-slate-100 mb-1">Delete transaction?</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">This cannot be undone.</p>
             <div className="flex gap-3">
-              <button onClick={() => setConfirmId(null)} className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300">
+              <button onClick={() => setConfirmId(null)}
+                className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-600 text-sm font-semibold text-slate-600 dark:text-slate-300">
                 Cancel
               </button>
-              <button
-                onClick={() => { deleteTransaction(confirmId); setConfirmId(null); }}
-                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold"
-              >
+              <button onClick={() => { deleteTransaction(confirmId); setConfirmId(null); }}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-semibold">
                 Delete
               </button>
             </div>

@@ -48,6 +48,12 @@ export function useFinance() {
     notifyTx();
   }, []);
 
+  const updateTransaction = useCallback((updated: Transaction) => {
+    _transactions = _transactions.map(t => t.id === updated.id ? updated : t);
+    save('ft_tx', _transactions);
+    notifyTx();
+  }, []);
+
   const upsertBudget = useCallback((b: Budget) => {
     _budgets = [b, ..._budgets.filter(x => x.category !== b.category)];
     save('ft_bd', _budgets);
@@ -60,7 +66,7 @@ export function useFinance() {
     notifyBd();
   }, []);
 
-  return { transactions, budgets, addTransaction, deleteTransaction, upsertBudget, deleteBudget };
+  return { transactions, budgets, addTransaction, updateTransaction, deleteTransaction, upsertBudget, deleteBudget };
 }
 
 // Helpers
@@ -84,4 +90,8 @@ export function fmt(n: number) {
 
 export function fmtDate(d: string) {
   return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+export function sortByDate(txs: Transaction[]): Transaction[] {
+  return [...txs].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 }
