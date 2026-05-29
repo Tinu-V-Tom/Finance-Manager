@@ -1,14 +1,6 @@
 export type TxType = 'income' | 'expense' | 'investment';
 
-export type Category =
-  // expense
-  | 'Food' | 'Transport' | 'Shopping' | 'Bills'
-  | 'Entertainment' | 'Health' | 'Education'
-  // income
-  | 'Salary' | 'Freelance' | 'Business' | 'Rental'
-  // investment
-  | 'Stocks' | 'Mutual Funds' | 'Crypto' | 'Real Estate' | 'Fixed Deposit'
-  | 'Other';
+export type Category = string; // predefined + user-defined
 
 export interface Transaction {
   id: string;
@@ -20,6 +12,18 @@ export interface Transaction {
 }
 
 export interface Budget {
-  category: string; // Category or "Total"
+  category: string;
   limit: number;
+}
+
+export type Recurrence = 'once' | 'weekly' | 'monthly' | 'yearly';
+
+export interface Reminder {
+  id: string;
+  title: string;
+  amount: number;
+  category: string;
+  dueDate: string;    // "YYYY-MM-DD" — next due date
+  recurrence: Recurrence;
+  note: string;
 }
