@@ -44,7 +44,7 @@ export default function Home() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <p className="text-xs text-slate-400 uppercase tracking-wide">{monthLabel}</p>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Finance Tracker</h1>
+          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Wallet Tracker</h1>
         </div>
         <div className="flex items-center gap-2">
           <button
